@@ -1,0 +1,37 @@
+pipeline {
+  agent any
+
+    stages {
+      stage('Scm Checkout') {
+        steps {
+          git branch: 'staging', url: 'https://github.com/mdrajibkhan/docker-java-jenkinsfile-registry.git'
+            }
+            }
+      stage('Build App') {
+        steps {
+          sh 'mvn clean package'
+            }
+            }
+      stage('Build Docker Images') {
+        steps {
+          sh 'docker build -t mdrajibkhan/myimage:v1 . '
+            }
+            }
+      stage('Push the Docker Images') {
+         steps {
+	   withCredentials([string(credentialsId: 'dockerHubPwd', variable: 'dockerHubPwd')]) {
+	      sh "docker login -u mdrajibkhan -p ${dockerHubPwd}"
+		}
+              sh 'docker push mdrajibkhan/myimage:v1'
+            }
+            }
+      stage('Image Pull and deploy the application') {
+         steps {
+	   sh 'docker rm web -f'
+	   sh 'docker pull mdrajibkhan/myimage:v1'
+	   sh 'docker run --name web -dit -p 8081:8080 mdrajibkhan/myimage:v1'
+				
+            }
+        }
+    }
+}
